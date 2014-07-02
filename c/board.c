@@ -15,23 +15,28 @@ int board_free(Board * self) {
 }
 
 uint32_t _has_liberties(Board * self, uint8_t x, uint8_t y, uint8_t color) {
-    uint8_t pos_color;
+    uint8_t pos_color, size;
     uint32_t pos, has_libs;
 
-    pos = x * self->size + y;
-    pos_color = self->board[pos] & 0x03;
+    size = self->size;
+
+    pos = x * size + y;
 
     if(self->board[pos] & BOARD_MASK_MARK) return 0;
+
+    pos_color = self->board[pos] & 0x03;
+
     if(pos_color == 3 - color) return 0;
     if(pos_color == 0) return 1;
+
 
     self->board[pos] |= BOARD_MASK_MARK;
 
     has_libs =
         x > 0 && _has_liberties(self, x - 1, y, color) ||
         y > 0 && _has_liberties(self, x , y - 1, color) ||
-        x < self->size - 1 && _has_liberties(self, x + 1, y, color) ||
-        y < self->size - 1 && _has_liberties(self, x, y + 1, color);
+        x < size - 1 && _has_liberties(self, x + 1, y, color) ||
+        y < size - 1 && _has_liberties(self, x, y + 1, color);
 
     self->board[pos] -= BOARD_MASK_MARK;
 
@@ -39,10 +44,12 @@ uint32_t _has_liberties(Board * self, uint8_t x, uint8_t y, uint8_t color) {
 }
 
 uint32_t _kill_group(Board * self, uint8_t x, uint8_t y, uint8_t color) {
-    uint8_t pos_color;
+    uint8_t pos_color, size;
     uint32_t pos, killed;
 
-    pos = x * self->size + y;
+    size = self->size;
+
+    pos = x * size + y;
     pos_color = self->board[pos] & 0x03;
 
     if(pos_color != color) return 0;
@@ -53,8 +60,8 @@ uint32_t _kill_group(Board * self, uint8_t x, uint8_t y, uint8_t color) {
 
     if(x > 0) killed += _kill_group(self, x - 1, y, color);
     if(y > 0) killed += _kill_group(self, x , y - 1, color);
-    if(x < self->size - 1) killed += _kill_group(self, x + 1, y, color);
-    if(y < self->size - 1) killed += _kill_group(self, x, y + 1, color);
+    if(x < size - 1) killed += _kill_group(self, x + 1, y, color);
+    if(y < size - 1) killed += _kill_group(self, x, y + 1, color);
 
     return killed;
 }
@@ -70,8 +77,11 @@ int board_fprintf(FILE * fp, Board * self) {
 }
 
 int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
+    uint8_t other_color;
     uint32_t i, pos, own_libs;
     uint32_t killing, killed; //N, S, E, W
+
+    other_color = 3 - color;
 
     pos = x * self->size + y;
 
@@ -82,10 +92,10 @@ int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     own_libs = _has_liberties(self, x, y, color);
 
     killing = 0;
-    if(x > 0 && !_has_liberties(self, x - 1, y, 3 - color)) killing |= 0x01;
-    if(y > 0 && !_has_liberties(self, x , y - 1, 3 - color)) killing |= 0x02;
-    if(x < self->size - 1 && !_has_liberties(self, x + 1, y, 3 - color)) killing |= 0x04;
-    if(y < self->size - 1 && !_has_liberties(self, x, y + 1, 3 - color)) killing |= 0x08;
+    if(x > 0 && !_has_liberties(self, x - 1, y, other_color)) killing |= 0x01;
+    if(y > 0 && !_has_liberties(self, x , y - 1, other_color)) killing |= 0x02;
+    if(x < self->size - 1 && !_has_liberties(self, x + 1, y, other_color)) killing |= 0x04;
+    if(y < self->size - 1 && !_has_liberties(self, x, y + 1, other_color)) killing |= 0x08;
 
     if(!own_libs && !killing) {
         self->board[pos] = 0;
@@ -93,10 +103,10 @@ int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     }
 
     killed = 0;
-    if(killing & 0x01) killed += _kill_group(self, x - 1, y, 3 - color);
-    if(killing & 0x02) killed += _kill_group(self, x, y - 1, 3 - color);
-    if(killing & 0x04) killed += _kill_group(self, x + 1, y, 3 - color);
-    if(killing & 0x08) killed += _kill_group(self, x, y + 1, 3 - color);
+    if(killing & 0x01) killed += _kill_group(self, x - 1, y, other_color);
+    if(killing & 0x02) killed += _kill_group(self, x, y - 1, other_color);
+    if(killing & 0x04) killed += _kill_group(self, x + 1, y, other_color);
+    if(killing & 0x08) killed += _kill_group(self, x, y + 1, other_color);
 
 
 }
@@ -130,7 +140,7 @@ int _board_test() {
 
 int __BOARD_TEST() {
     uint64_t i;
-    for(i = 0; i < 16000000; i++) {
+    for(i = 0; i < 1600000; i++) {
         _board_test();
     }
     return 0;
