@@ -33,10 +33,10 @@ uint32_t _has_liberties(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     self->board[pos] |= BOARD_MASK_MARK;
 
     has_libs =
-        x > 0 && _has_liberties(self, x - 1, y, color) ||
-        y > 0 && _has_liberties(self, x , y - 1, color) ||
-        x < size - 1 && _has_liberties(self, x + 1, y, color) ||
-        y < size - 1 && _has_liberties(self, x, y + 1, color);
+        x > 0 && ((self->board[pos - size] & 0x03) == 0 || _has_liberties(self, x - 1, y, color)) ||
+        y > 0 && ((self->board[pos - 1] & 0x03) == 0 || _has_liberties(self, x , y - 1, color)) ||
+        x < size - 1 && ((self->board[pos + size] & 0x03) == 0 || _has_liberties(self, x + 1, y, color)) ||
+        y < size - 1 && ((self->board[pos + 1] & 0x03) == 0 || _has_liberties(self, x, y + 1, color));
 
     self->board[pos] -= BOARD_MASK_MARK;
 
@@ -140,7 +140,7 @@ int _board_test() {
 
 int __BOARD_TEST() {
     uint64_t i;
-    for(i = 0; i < 1600000; i++) {
+    for(i = 0; i < 1800000; i++) {
         _board_test();
     }
     return 0;

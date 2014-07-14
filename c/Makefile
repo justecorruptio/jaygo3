@@ -9,7 +9,7 @@ test_set: set.c
 	$(CC) set.c -o test -D__SET_TEST=main -DTESTING && ./test && rm ./test
 
 test_board: board.c
-	$(CC) -g board.c -o test -D__BOARD_TEST=main -DTESTING && time ./test #&& rm ./test
+	$(CC) board.c -o test -D__BOARD_TEST=main -DTESTING && time ./test #&& rm ./test
 
 clean:
 	rm jaygo
