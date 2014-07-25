@@ -26,7 +26,7 @@ Board * board_clone(Board * self) {
     return clone;
 }
 
-uint32_t _has_liberties(Board * self, uint8_t x, uint8_t y, uint8_t color) {
+uint32_t _has_liberties_recur(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     uint8_t pos_color, size;
     uint32_t pos, has_libs;
 
@@ -39,29 +39,53 @@ uint32_t _has_liberties(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     if(pos_color == 3 - color) return 0;
     if(pos_color == 0) return 1;
 
-
     self->board[pos] |= BOARD_MASK_MARK;
 
     has_libs =
         x > 0 && (
             self->board[pos - size] == 0 ||
-            self->board[pos - size] == color && _has_liberties(self, x - 1, y, color)
+            self->board[pos - size] == color && _has_liberties_recur(self, x - 1, y, color)
         ) ||
         y > 0 && (
             self->board[pos - 1] == 0 ||
-            self->board[pos - 1] == color && _has_liberties(self, x , y - 1, color)
+            self->board[pos - 1] == color && _has_liberties_recur(self, x , y - 1, color)
         ) ||
         x < size - 1 && (
             self->board[pos + size] == 0 ||
-            self->board[pos + size] == color && _has_liberties(self, x + 1, y, color)
+            self->board[pos + size] == color && _has_liberties_recur(self, x + 1, y, color)
         ) ||
         y < size - 1 && (
             self->board[pos + 1] == 0 ||
-            self->board[pos + 1] == color && _has_liberties(self, x, y + 1, color)
+            self->board[pos + 1] == color && _has_liberties_recur(self, x, y + 1, color)
         );
+
+    //self->board[pos] -= BOARD_MASK_MARK;
+
+    return has_libs;
+}
+
+int _clear_marks(Board * self, uint8_t x, uint8_t y) {
+    uint8_t size;
+    uint32_t pos, has_libs;
+
+    size = self->size;
+    pos = x * size + y;
 
     self->board[pos] -= BOARD_MASK_MARK;
 
+    if(x > 0 && (self->board[pos - size] & BOARD_MASK_MARK)) _clear_marks(self, x - 1, y);
+    if(y > 0 && (self->board[pos - 1] & BOARD_MASK_MARK)) _clear_marks(self, x, y - 1);
+    if(x < size - 1 && (self->board[pos + size] & BOARD_MASK_MARK)) _clear_marks(self, x + 1, y);
+    if(y < size - 1 && (self->board[pos + 1] & BOARD_MASK_MARK)) _clear_marks(self, x, y + 1);
+
+    return 0;
+}
+
+uint32_t _has_liberties(Board * self, uint8_t x, uint8_t y, uint8_t color) {
+    uint32_t has_libs;
+
+    has_libs = _has_liberties_recur(self, x, y, color);
+    _clear_marks(self, x, y);
     return has_libs;
 }
 
@@ -112,8 +136,18 @@ int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     uint32_t i, pos, own_libs;
     uint32_t killing, killed;
 
+    int a, b;
+
     other_color = 3 - color;
     size = self->size;
+
+    // pass
+    if(x == size && y == size) {
+        self->ko_x = size;
+        self->ko_y = size;
+        return 1;
+    }
+
     pos = x * size + y;
 
     if(self->board[pos]) return 0;
@@ -122,6 +156,15 @@ int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     self->board[pos] = color;
 
     own_libs = _has_liberties(self, x, y, color);
+
+    /*
+    for(a = 0; a<size;a++){
+        for(b=0;b<size;b++)
+            fprintf(stdout, "%x ", self->board[a * size + b]);
+        puts("");
+    }
+    puts("");
+    */
 
     killing = 0;
     if(x > 0 && self->board[pos - size] == other_color && !_has_liberties(self, x - 1, y, other_color))
@@ -133,7 +176,8 @@ int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     if(y < size - 1 && self->board[pos + 1] == other_color && !_has_liberties(self, x, y + 1, other_color))
         killing |= 0x08;
 
-    //fprintf(stdout, "(%d, %d) O: %d K: %d\n", x, y, own_libs, killing);
+
+    //fprintf(stderr, "(%d, %d) O: %d K: %d\n", x, y, own_libs, killing);
 
     if(!own_libs && !killing) {
         self->board[pos] = 0;
@@ -169,7 +213,7 @@ int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
 }
 
 int _is_likely_eye(Board * self, uint8_t x, uint8_t y, uint8_t color) {
-    uint8_t size, mask;
+    uint8_t size, mask, diags;
     uint32_t pos;
 
     size = self->size;
@@ -189,7 +233,15 @@ int _is_likely_eye(Board * self, uint8_t x, uint8_t y, uint8_t color) {
     if(y >= size - 1) {mask -= 0x8;}
     else if(self->board[pos + 1] != color) return 0;
 
-    // TODO: add diagonal data here;
+    //diags = 0;
+
+    //if(((mask & 0x3) == 0x3) && self->board[pos - size - 1] == color) diags ++;
+    //if(((mask & 0x6) == 0x6) && self->board[pos + size - 1] == color) diags ++;
+    //if(((mask & 0xc) == 0xc) && self->board[pos + size + 1] == color) diags ++;
+    //if(((mask & 0x9) == 0x9) && self->board[pos - size + 1] == color) diags ++;
+
+    //if (diags >= 1) return 1;
+
     return 1;
 }
 
@@ -226,16 +278,18 @@ int board_random_play_to_end(Board * self, uint8_t color) {
         played = board_play_random(self, &x, &y, turn);
         if(played) passed = 0;
         else passed += 1;
+        if(!played) {
+            // passing
+            board_play(self, self->size, self->size, turn);
+        }
 
-        /*
-        if(played) fprintf(stdout, "%d: (%d, %d)\n", turn, x, y);
-        else fprintf(stdout, "%d: passed\n", turn);
+        //if(played) fprintf(stdout, "%d: (%d, %d)\n", turn, x, y);
+        //else fprintf(stdout, "%d: passed\n", turn);
 
         //puts("\x1b[2J");
-        board_fprintf(stdout, self);
-        puts("");
+        //board_fprintf(stdout, self);
+        //puts("");
         //system("sleep .001");
-        */
 
         turn = 3 - turn;
         max_turns --;
@@ -278,6 +332,7 @@ int _play_rand() {
     Board * b;
     b = board_new(9);
     board_random_play_to_end(b, 1);
+    //puts("\x1b[2J");
     //board_fprintf(stdout, b);
     //puts("");
     board_free(b);
