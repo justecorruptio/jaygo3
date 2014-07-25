@@ -14,6 +14,7 @@ typedef struct Board {
     uint8_t size;
     uint8_t ko_x;
     uint8_t ko_y;
+    uint32_t captures[2]; // size = 8 * uint8_t
     uint8_t board[];
 } Board;
 
