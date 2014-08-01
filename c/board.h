@@ -19,9 +19,16 @@ typedef struct Board {
 } Board;
 
 Board * board_new(uint8_t size);
+
 int board_free(Board * self);
 
 int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color);
+
+int board_play_random(Board * self, uint8_t * x, uint8_t * y, uint8_t color);
+
+int board_random_play_to_end(Board * self, uint8_t color);
+
+int32_t board_score(Board * self);
 
 int board_fprintf(FILE * fp, Board * self);
 

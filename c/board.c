@@ -128,7 +128,7 @@ int board_fprintf(FILE * fp, Board * self) {
         }
         fprintf(fp, "\n");
     }
-    fprintf(fp, "CAP - B: %d, W: %d\n", self->captures[0], self->captures[1]);
+    fprintf(fp, "CAP: B=%d, W=%d\n", self->captures[0], self->captures[1]);
 }
 
 int board_play(Board * self, uint8_t x, uint8_t y, uint8_t color) {
@@ -294,7 +294,24 @@ int board_random_play_to_end(Board * self, uint8_t color) {
         turn = 3 - turn;
         max_turns --;
     }
+    return 1;
+}
 
+int32_t board_score(Board * self) {
+    uint8_t i, j, color, size;
+    int32_t score;
+
+    size = self->size;
+
+    score = - self->captures[0] + self->captures[1];
+    for(i = 0; i < self->size; i++) {
+        for(j = 0; j < self->size; j++) {
+            color = self->board[i * size + j];
+            if(color == 1) score --;
+            else if(color == 2) score ++;
+        }
+    }
+    return score;
 }
 
 int _board_test() {
@@ -333,14 +350,15 @@ int _play_rand() {
     b = board_new(9);
     board_random_play_to_end(b, 1);
     //puts("\x1b[2J");
-    //board_fprintf(stdout, b);
-    //puts("");
+    board_fprintf(stdout, b);
+    printf("SCORE: %d\n", board_score(b));
+    puts("");
     board_free(b);
 }
 
 int __BOARD_TEST() {
     uint64_t i;
-    for(i = 0; i < 10000; i++) {
+    for(i = 0; i < 100000; i++) {
         //_board_test();
         _play_rand();
     }
