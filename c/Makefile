@@ -1,4 +1,4 @@
-CC=gcc -O3 -g
+CC=gcc -lm
 
 all: jaygo
 
@@ -10,6 +10,9 @@ test_set: set.c
 
 test_board: board.c
 	$(CC) board.c -o test -D__BOARD_TEST=main -DTESTING && time ./test #&& rm ./test
+
+test_uct: uct.c
+	$(CC) board.c uct.c -o test -D__UCT_TEST=main -DTESTING && time ./test #&& rm ./test
 
 clean:
 	rm jaygo

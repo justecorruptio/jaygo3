@@ -3,7 +3,8 @@
 Board * board_new(uint8_t size) {
     Board * self;
 
-    self = (Board *)calloc(size * size + 3 + 8, sizeof(uint8_t));
+    //self = (Board *)calloc(size * size + 3 + 8, sizeof(uint8_t));
+    self = (Board *)calloc(1, sizeof(struct Board) + sizeof(uint8_t) * size * size);
 
     self->size = size;
     self->ko_x = size;
@@ -20,7 +21,8 @@ Board * board_clone(Board * self) {
     Board * clone;
     size_t mem_size;
 
-    mem_size = (self->size * self->size + 3 + 8) * sizeof(uint8_t);
+    //mem_size = (self->size * self->size + 3 + 8) * sizeof(uint8_t);
+    mem_size = sizeof(struct Board) + sizeof(uint8_t) * self->size * self->size;
     clone = (Board *)malloc(mem_size);
     memcpy(clone, self, mem_size);
     return clone;
@@ -297,18 +299,30 @@ int board_random_play_to_end(Board * self, uint8_t color) {
     return 1;
 }
 
-int32_t board_score(Board * self) {
+float board_score(Board * self) {
     uint8_t i, j, color, size;
+    uint32_t pos;
     int32_t score;
 
     size = self->size;
 
-    score = - self->captures[0] + self->captures[1];
+    //score = - self->captures[0] + self->captures[1];
+    score = 4.5;
     for(i = 0; i < self->size; i++) {
         for(j = 0; j < self->size; j++) {
             color = self->board[i * size + j];
             if(color == 1) score --;
             else if(color == 2) score ++;
+            else{
+                color = 0;
+                pos = i * size + j;
+                if(i > 0 && self->board[pos - size]) color = self->board[pos - size];
+                if(j > 0 && self->board[pos - 1]) color = self->board[pos - 1];
+                if(i < size - 1 && self->board[pos + size]) color = self->board[pos + size];
+                if(j < size - 1 && self->board[pos + 1]) color = self->board[pos + 1];
+                if(color == 1) score --;
+                else if(color == 2) score ++;
+            }
         }
     }
     return score;
@@ -351,7 +365,7 @@ int _play_rand() {
     board_random_play_to_end(b, 1);
     //puts("\x1b[2J");
     board_fprintf(stdout, b);
-    printf("SCORE: %d\n", board_score(b));
+    printf("SCORE: %0.2f\n", board_score(b));
     puts("");
     board_free(b);
 }
